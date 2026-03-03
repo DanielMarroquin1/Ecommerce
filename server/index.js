@@ -23,6 +23,10 @@ app.use('/api/checkout', checkoutRouter);
 app.use('/api/admin', adminRouter);
 
 // Health check
+app.get('/', (req, res) => {
+    res.json({ message: 'Welcome to zzaly Ecommerce API', docs: '/api/health' });
+});
+
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
