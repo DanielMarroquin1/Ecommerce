@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
       LEFT JOIN zz_product_variants pv ON pv.product_id = p.id
       WHERE 1=1
     `;
+        console.log('API /products hit, preparing query...');
         const params = [];
         let paramIndex = 1;
 
@@ -74,8 +75,9 @@ router.get('/', async (req, res) => {
 
         res.json(products);
     } catch (err) {
-        console.error('Error fetching products:', err);
-        res.status(500).json({ error: 'Error al cargar los productos' });
+        console.error('CRITICAL Error fetching products:', err.message);
+        console.error(err.stack);
+        res.status(500).json({ error: 'Error al cargar los productos', details: err.message });
     }
 });
 
