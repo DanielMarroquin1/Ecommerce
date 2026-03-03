@@ -5,7 +5,7 @@ import ProductCard from '../components/ProductCard';
 import ProductDetail from '../components/ProductDetail';
 import useScrollReveal from '../hooks/useScrollReveal';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Home() {
     useScrollReveal();
