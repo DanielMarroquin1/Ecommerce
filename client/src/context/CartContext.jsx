@@ -1,9 +1,22 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-    const [items, setItems] = useState([]);
+    const [items, setItems] = useState(() => {
+        try {
+            const saved = localStorage.getItem('zzaly_cart');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('Error loading cart from localStorage', error);
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        localStorage.setItem('zzaly_cart', JSON.stringify(items));
+    }, [items]);
+
     const [toast, setToast] = useState(null);
 
     const showToast = useCallback((message) => {
