@@ -6,14 +6,11 @@ const path = require('path');
 dns.setDefaultResultOrder('ipv4first');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const dbHost = process.env.DB_HOST || 'localhost';
+const connectionString = process.env.DATABASE_URL ||
+  `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || ''}@${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'zzaly'}`;
 
 const pool = new Pool({
-  host: dbHost,
-  port: process.env.DB_PORT || 5432,
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'zzaly',
+  connectionString,
   ssl: {
     rejectUnauthorized: false
   }
