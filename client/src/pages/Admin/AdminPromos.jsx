@@ -5,6 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 export default function AdminPromos() {
     const [promos, setPromos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showForm, setShowForm] = useState(false);
 
     const [newCode, setNewCode] = useState('');
     const [type, setType] = useState('percentage');
@@ -12,13 +13,16 @@ export default function AdminPromos() {
     const [minOrder, setMinOrder] = useState('');
     const [maxUses, setMaxUses] = useState('');
 
+    const token = localStorage.getItem('zzaly_admin_token');
+    const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
     useEffect(() => {
         fetchPromos();
     }, []);
 
     const fetchPromos = async () => {
         try {
-            const res = await fetch(`${API_URL}/admin/promos`);
+            const res = await fetch(`${API_URL}/admin/promos`, { headers: authHeaders });
             const data = await res.json();
             setPromos(data);
             setLoading(false);
@@ -33,7 +37,7 @@ export default function AdminPromos() {
         try {
             const res = await fetch(`${API_URL}/admin/promos`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
                 body: JSON.stringify({
                     code: newCode,
                     discount_type: type,
@@ -44,11 +48,11 @@ export default function AdminPromos() {
             });
 
             if (res.ok) {
-                alert('Código promocional creado');
                 setNewCode('');
                 setValue('');
                 setMinOrder('');
                 setMaxUses('');
+                setShowForm(false);
                 fetchPromos();
             } else {
                 const err = await res.json();
@@ -59,122 +63,123 @@ export default function AdminPromos() {
         }
     };
 
-    if (loading) return <div style={{ padding: '2rem' }}>Cargando códigos...</div>;
+    const toggleActive = async (id, currentStatus) => {
+        try {
+            await fetch(`${API_URL}/admin/promos/${id}`, {
+                method: 'PUT',
+                headers: authHeaders,
+                body: JSON.stringify({ is_active: !currentStatus })
+            });
+            fetchPromos();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const deletePromo = async (id) => {
+        if (!confirm('¿Estás seguro de eliminar este código?')) return;
+        try {
+            await fetch(`${API_URL}/admin/promos/${id}`, {
+                method: 'DELETE',
+                headers: authHeaders
+            });
+            fetchPromos();
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    if (loading) return <div className="admin-loading">Cargando códigos...</div>;
 
     return (
         <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '2rem' }}>Códigos Promocionales Temporales</h1>
+            <div className="admin-page-header">
+                <div>
+                    <h1 className="admin-page-title">Códigos Promocionales</h1>
+                    <p className="admin-page-subtitle">{promos.length} código{promos.length !== 1 ? 's' : ''} creados</p>
+                </div>
+                <button className="admin-btn-primary" onClick={() => setShowForm(!showForm)}>
+                    {showForm ? 'Cancelar' : '+ Nuevo Código'}
+                </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
-                {/* Create Form */}
-                <div style={{ background: 'var(--white)', padding: '2rem', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
-                    <h3 style={{ marginBottom: '1.5rem', fontFamily: 'var(--font-display)', fontSize: '1.5rem' }}>Crear Nuevo Código</h3>
-                    <form onSubmit={handleCreatePromo} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Código (ej. VERANO20)</label>
-                            <input
-                                type="text"
-                                required
-                                value={newCode}
-                                onChange={e => setNewCode(e.target.value.toUpperCase())}
-                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--sand)' }}
-                            />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Tipo</label>
-                                <select
-                                    value={type}
-                                    onChange={e => setType(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--sand)' }}
-                                >
+            {showForm && (
+                <div className="admin-card" style={{ marginBottom: '2rem' }}>
+                    <h3 style={{ marginBottom: '1.5rem' }}>Crear Nuevo Código</h3>
+                    <form onSubmit={handleCreatePromo} className="admin-promo-form">
+                        <div className="admin-form-grid">
+                            <div className="admin-form-group">
+                                <label>Código (ej. VERANO20)</label>
+                                <input type="text" required value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} />
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Tipo</label>
+                                <select value={type} onChange={e => setType(e.target.value)}>
                                     <option value="percentage">Porcentaje (%)</option>
-                                    <option value="fixed">Monto Fijo ($)</option>
+                                    <option value="fixed">Monto Fijo (Q)</option>
                                 </select>
                             </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Descuento</label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="1"
-                                    value={value}
-                                    onChange={e => setValue(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--sand)' }}
-                                />
+                            <div className="admin-form-group">
+                                <label>Descuento</label>
+                                <input type="number" required min="1" value={value} onChange={e => setValue(e.target.value)} />
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Pedido Mínimo (Q)</label>
+                                <input type="number" min="0" value={minOrder} onChange={e => setMinOrder(e.target.value)} />
+                            </div>
+                            <div className="admin-form-group">
+                                <label>Límite de usos</label>
+                                <input type="number" min="1" value={maxUses} onChange={e => setMaxUses(e.target.value)} />
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Pedido Mínimo ($)</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    value={minOrder}
-                                    onChange={e => setMinOrder(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--sand)' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Límite de usos</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={maxUses}
-                                    onChange={e => setMaxUses(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--sand)' }}
-                                />
-                            </div>
-                        </div>
-                        <button type="submit" className="hero-cta" style={{ marginTop: '1rem', width: '100%', justifyContent: 'center' }}>Crear Código</button>
+                        <button type="submit" className="admin-btn-primary" style={{ marginTop: '1rem' }}>Crear Código</button>
                     </form>
                 </div>
+            )}
 
-                {/* List */}
-                <div style={{ background: 'var(--white)', borderRadius: '12px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead style={{ background: 'var(--sand)', color: 'var(--espresso)' }}>
+            <div className="admin-card">
+                {promos.length === 0 ? (
+                    <p className="admin-empty">No hay códigos creados</p>
+                ) : (
+                    <table className="admin-table">
+                        <thead>
                             <tr>
-                                <th style={{ padding: '15px 20px' }}>Código</th>
-                                <th style={{ padding: '15px 20px' }}>Descuento</th>
-                                <th style={{ padding: '15px 20px' }}>Usos</th>
-                                <th style={{ padding: '15px 20px' }}>Estado</th>
+                                <th>Código</th>
+                                <th>Descuento</th>
+                                <th>Usos</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
                             {promos.map(promo => (
-                                <tr key={promo.id} style={{ borderBottom: '1px solid var(--cream)' }}>
-                                    <td style={{ padding: '15px 20px', fontWeight: 600 }}>{promo.code}</td>
-                                    <td style={{ padding: '15px 20px' }}>
-                                        {promo.discount_type === 'percentage' ? `${promo.discount_value}%` : `$${promo.discount_value}`}
-                                        {parseFloat(promo.min_order_value) > 0 && <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--rose-tan)' }}>Min: ${promo.min_order_value}</span>}
+                                <tr key={promo.id}>
+                                    <td style={{ fontWeight: 700, letterSpacing: '1px' }}>{promo.code}</td>
+                                    <td>
+                                        {promo.discount_type === 'percentage' ? `${promo.discount_value}%` : `Q${promo.discount_value}`}
+                                        {parseFloat(promo.min_order_value) > 0 && (
+                                            <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--rose-tan)' }}>Min: Q{promo.min_order_value}</span>
+                                        )}
                                     </td>
-                                    <td style={{ padding: '15px 20px' }}>
-                                        {promo.used_count} / {promo.max_uses || '∞'}
-                                    </td>
-                                    <td style={{ padding: '15px 20px' }}>
-                                        <span style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.8rem',
-                                            background: promo.is_active ? '#e6f4ea' : '#fce8e6',
-                                            color: promo.is_active ? '#1e8e3e' : '#d93025'
-                                        }}>
+                                    <td>{promo.used_count} / {promo.max_uses || '∞'}</td>
+                                    <td>
+                                        <span className={`admin-badge ${promo.is_active ? 'admin-badge-delivered' : 'admin-badge-cancelled'}`}>
                                             {promo.is_active ? 'Activo' : 'Inactivo'}
                                         </span>
                                     </td>
+                                    <td>
+                                        <div className="admin-actions-row">
+                                            <button className="admin-btn-sm" onClick={() => toggleActive(promo.id, promo.is_active)}>
+                                                {promo.is_active ? '⏸ Desactivar' : '▶ Activar'}
+                                            </button>
+                                            <button className="admin-btn-sm admin-btn-danger" onClick={() => deletePromo(promo.id)}>🗑️ Eliminar</button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
-                            {promos.length === 0 && (
-                                <tr>
-                                    <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: 'var(--rose-tan)' }}>No hay códigos creados</td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
-                </div>
+                )}
             </div>
         </div>
     );
