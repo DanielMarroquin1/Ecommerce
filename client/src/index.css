@@ -410,13 +410,14 @@ button {
   position: relative;
   width: 100%;
   height: 100%;
+  background: var(--sand);
 }
 
 .hero-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top center;
+  object-position: center 20%;
 }
 
 .hero-overlay {
@@ -1599,14 +1600,20 @@ button {
 
 .mobile-dropdown-links a {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.7) !important;
   padding: 10px 0;
   transition: all 0.2s ease;
   letter-spacing: 0.5px;
+  text-decoration: none !important;
+  display: block;
+}
+
+.mobile-dropdown-links a::after {
+  display: none !important;
 }
 
 .mobile-dropdown-links a:hover {
-  color: var(--sand);
+  color: var(--white) !important;
   padding-left: 6px;
 }
 
