@@ -76,7 +76,7 @@ export default function Home() {
 
             {/* Full-Width Parallax Banner */}
             <section className="parallax-banner reveal-on-scroll">
-                <div className="parallax-bg" style={{ backgroundImage: 'url(https://placehold.co/1920x800/5D4032/F6F2EF?text=)' }}></div>
+                <div className="parallax-bg" style={{ backgroundImage: 'url(/images/banner_season.jpg)' }}></div>
                 <div className="parallax-content">
                     <span className="parallax-tag">NUEVA TEMPORADA</span>
                     <h2>Elegancia que<br />Define tu Estilo</h2>

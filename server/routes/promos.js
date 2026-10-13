@@ -2,34 +2,58 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 
-// POST /api/promos/validate
+// POST /api/promos/validate — Validación exhaustiva de cupones
 router.post('/validate', async (req, res) => {
     try {
-        const { code, subtotal } = req.body;
+        let { code, subtotal } = req.body;
 
-        if (!code) {
-            return res.status(400).json({ error: 'Código requerido' });
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
         }
 
+        // Limpiar espacios en blanco (.trim()) y normalizar a mayúsculas
+        const cleanCode = code.trim().toUpperCase();
+        if (!cleanCode) {
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
+        }
+
+        // Búsqueda en base de datos
         const result = await pool.query(
-            `SELECT * FROM zz_promo_codes 
-             WHERE code = $1 AND is_active = true 
-             AND (valid_until IS NULL OR valid_until > NOW())`,
-            [code.toUpperCase()]
+            `SELECT * FROM zz_promo_codes WHERE UPPER(TRIM(code)) = $1`,
+            [cleanCode]
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Código inválido o expirado' });
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
         }
 
         const promo = result.rows[0];
 
-        if (promo.max_uses !== null && promo.used_count >= promo.max_uses) {
-            return res.status(400).json({ error: 'Este código ha alcanzado su límite de usos' });
+        // 1. Validar que el cupón esté activo
+        if (!promo.is_active) {
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
         }
 
-        if (subtotal && subtotal < promo.min_order_value) {
-            return res.status(400).json({ error: `El pedido mínimo para este código es $${promo.min_order_value}` });
+        // 2. Validar vigencia temporal estricta:
+        //    fecha_actual >= valid_from Y fecha_actual <= valid_until (o expiration_date)
+        const now = new Date();
+        if (promo.valid_from && new Date(promo.valid_from) > now) {
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
+        }
+
+        const expirationDate = promo.valid_until || promo.expiration_date;
+        if (expirationDate && new Date(expirationDate) < now) {
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
+        }
+
+        // 3. Validar límite de usos máximos
+        if (promo.max_uses !== null && promo.used_count >= promo.max_uses) {
+            return res.status(400).json({ error: 'Cupón vencido o no válido' });
+        }
+
+        // 4. Validar subtotal mínimo requerido
+        if (subtotal !== undefined && promo.min_order_value && Number(subtotal) < Number(promo.min_order_value)) {
+            return res.status(400).json({ error: `El pedido mínimo para este cupón es $${promo.min_order_value}` });
         }
 
         res.json({

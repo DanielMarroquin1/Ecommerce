@@ -3,7 +3,10 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'zzaly-super-secret-jwt-key-2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('Error de seguridad crítico: La variable de entorno JWT_SECRET es obligatoria.');
+}
 
 // JWT Authentication Middleware
 const isAdmin = (req, res, next) => {

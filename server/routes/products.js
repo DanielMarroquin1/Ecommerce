@@ -2,21 +2,21 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 
-// GET /api/products — List products with filters
+// GET /api/products — Catálogo público de productos con filtros
 router.get('/', async (req, res) => {
     try {
         const { category, size, color, min_price, max_price, featured, search } = req.query;
 
+        // FILTRO ESTRICTO: Solo productos con is_active = true
         let query = `
       SELECT DISTINCT p.id, p.name, p.slug, p.description, p.price,
-             p.is_featured, p.created_at,
+             p.is_featured, p.is_active, p.created_at,
              c.name as category_name, c.slug as category_slug
       FROM zz_products p
       LEFT JOIN zz_categories c ON p.category_id = c.id
       LEFT JOIN zz_product_variants pv ON pv.product_id = p.id
-      WHERE 1=1
+      WHERE p.is_active = true
     `;
-        console.log('API /products hit, preparing query...');
         const params = [];
         let paramIndex = 1;
 
@@ -24,14 +24,22 @@ router.get('/', async (req, res) => {
             query += ` AND c.slug = $${paramIndex++}`;
             params.push(category);
         }
-        if (size) {
-            query += ` AND pv.size = $${paramIndex++}`;
-            params.push(size);
+
+        // Filtro Talla + Color: Condición obligatoria de stock > 0
+        if (size && color) {
+            query += ` AND pv.size = $${paramIndex++} AND pv.color = $${paramIndex++} AND pv.stock > 0`;
+            params.push(size, color);
+        } else {
+            if (size) {
+                query += ` AND pv.size = $${paramIndex++} AND pv.stock > 0`;
+                params.push(size);
+            }
+            if (color) {
+                query += ` AND pv.color = $${paramIndex++} AND pv.stock > 0`;
+                params.push(color);
+            }
         }
-        if (color) {
-            query += ` AND pv.color = $${paramIndex++}`;
-            params.push(color);
-        }
+
         if (min_price) {
             query += ` AND p.price >= $${paramIndex++}`;
             params.push(parseFloat(min_price));
@@ -52,7 +60,7 @@ router.get('/', async (req, res) => {
 
         const result = await pool.query(query, params);
 
-        // Fetch images and variants for each product
+        // Fetch de imágenes y variantes para cada producto
         const products = await Promise.all(
             result.rows.map(async (product) => {
                 const images = await pool.query(
@@ -75,38 +83,47 @@ router.get('/', async (req, res) => {
 
         res.json(products);
     } catch (err) {
-        console.error('CRITICAL Error fetching products:', err.message);
-        console.error(err.stack);
+        console.error('Error fetching products:', err.message);
         res.status(500).json({ error: 'Error al cargar los productos', details: err.message });
     }
 });
 
-// GET /api/products/:id — Single product
+// GET /api/products/:id — Detalle de un producto individual
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const result = await pool.query(
-            `SELECT p.*, c.name as category_name, c.slug as category_slug
-       FROM zz_products p
-       LEFT JOIN zz_categories c ON p.category_id = c.id
-       WHERE p.id = $1`,
-            [id]
-        );
+        const isNumeric = !isNaN(Number(id));
+        const queryText = isNumeric
+            ? `SELECT p.*, c.name as category_name, c.slug as category_slug
+               FROM zz_products p
+               LEFT JOIN zz_categories c ON p.category_id = c.id
+               WHERE p.id = $1`
+            : `SELECT p.*, c.name as category_name, c.slug as category_slug
+               FROM zz_products p
+               LEFT JOIN zz_categories c ON p.category_id = c.id
+               WHERE p.slug = $1`;
+
+        const result = await pool.query(queryText, [id]);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Producto no encontrado' });
+            return res.status(404).json({ error: 'Producto no encontrado o inactivo' });
         }
 
         const product = result.rows[0];
 
+        // Validar is_active: si es false, responder HTTP 404 Not Found inmediatamente
+        if (product.is_active === false) {
+            return res.status(404).json({ error: 'Producto no encontrado o inactivo' });
+        }
+
         const images = await pool.query(
             'SELECT id, url, alt_text, sort_order FROM zz_product_images WHERE product_id = $1 ORDER BY sort_order',
-            [id]
+            [product.id]
         );
         const variants = await pool.query(
             'SELECT id, size, color, color_hex, stock FROM zz_product_variants WHERE product_id = $1 ORDER BY size, color',
-            [id]
+            [product.id]
         );
 
         res.json({

@@ -32,10 +32,17 @@ export default function HeroCarousel() {
             <Swiper
                 modules={[Autoplay, Pagination, EffectFade]}
                 effect="fade"
-                autoplay={{ delay: 5000, disableOnInteraction: false }}
-                pagination={{ clickable: true }}
-                loop
-                speed={1000}
+                fadeEffect={{ crossFade: true }}
+                autoplay={{
+                    delay: 4500,
+                    disableOnInteraction: false,
+                    pauseOnMouseEnter: false,
+                }}
+                pagination={{
+                    clickable: true,
+                }}
+                loop={true}
+                speed={1200}
             >
                 {slides.map((slide, index) => (
                     <SwiperSlide key={index}>

@@ -10,6 +10,7 @@ const promosRouter = require('./routes/promos');
 const checkoutRouter = require('./routes/checkout');
 const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
+const customersRouter = require('./routes/customers');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -67,6 +68,7 @@ app.use('/api/promos', promosRouter);
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/customers', customersRouter);
 
 // Root & Health check
 app.get('/', (req, res) => {
