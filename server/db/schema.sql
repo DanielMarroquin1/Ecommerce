@@ -7,9 +7,16 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. ENUMS
 DO $$ BEGIN
-    CREATE TYPE order_status AS ENUM ('pending', 'processing', 'shipped', 'delivered', 'cancelled');
+    CREATE TYPE order_status AS ENUM ('pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled');
 EXCEPTION
     WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'paid' AFTER 'pending';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+    WHEN OTHERS THEN null;
 END $$;
 
 DO $$ BEGIN

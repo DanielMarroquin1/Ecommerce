@@ -84,7 +84,7 @@ router.get('/', async (req, res) => {
         res.json(products);
     } catch (err) {
         console.error('Error fetching products:', err.message);
-        res.status(500).json({ error: 'Error al cargar los productos', details: err.message });
+        res.status(500).json({ error: 'Error al cargar los productos' });
     }
 });
 

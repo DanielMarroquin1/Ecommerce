@@ -301,12 +301,85 @@ Permite a un cliente autenticado consultar todas las órdenes de compra asociada
 
 ---
 
-## 6. Resumen de Códigos HTTP
-* **`200 OK`**: Solicitud exitosa (lectura o verificación).
-* **`201 Created`**: Recurso creado exitosamente (Checkout).
-* **`400 Bad Request`**: Parámetros de petición incompletos, inválidos o cupón rechazado en prevalidación.
+---
+
+## 6. Módulo de Clientes (`zz_customers`)
+
+### `POST /api/customers/register`
+Registra un nuevo cliente con hasheo seguro `bcrypt` (12 rounds) y validación de política de contraseñas.
+
+#### Request
+```json
+{
+  "name": "Cliente Nuevo",
+  "email": "nuevo.cliente@zzaly.com",
+  "password": "PasswordSegura2026!",
+  "phone": "55512345"
+}
+```
+* **Reglas de Contraseña:** Mínimo 8 caracteres, al menos 1 mayúscula, 1 minúscula y 1 número.
+* **Teléfono:** Exactamente 8 dígitos numéricos.
+
+#### Respuesta Exitosa (`HTTP 201 Created`)
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "customer": {
+    "id": 5,
+    "name": "Cliente Nuevo",
+    "email": "nuevo.cliente@zzaly.com",
+    "phone": "55512345",
+    "role": "customer",
+    "createdAt": "2026-10-13T18:40:00.000Z"
+  }
+}
+```
+
+---
+
+### `POST /api/customers/login`
+Autentica exclusivamente clientes registrados contra la tabla `zz_customers`.
+
+#### Request
+```json
+{
+  "email": "nuevo.cliente@zzaly.com",
+  "password": "PasswordSegura2026!"
+}
+```
+
+#### Respuesta Exitosa (`HTTP 200 OK`)
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 5,
+    "name": "Cliente Nuevo",
+    "email": "nuevo.cliente@zzaly.com",
+    "phone": "55512345",
+    "role": "customer"
+  }
+}
+```
+
+---
+
+## 7. Control de Acceso Basado en Roles (RBAC — CP-36)
+
+El middleware `isAdmin` protege todas las rutas administrativas bajo `/api/admin/*`:
+* **Sin token o token inválido:** Retorna **`HTTP 401 Unauthorized`**.
+* **Token con rol `customer` (CP-36):** Retorna inmediatamente **`HTTP 403 Forbidden`** con `{ "error": "Acceso denegado: se requieren privilegios de administrador para realizar esta acción" }`.
+* **Token con rol `admin`:** Permite el acceso hacia la ruta solicitada.
+
+---
+
+## 8. Resumen de Códigos HTTP
+* **`200 OK`**: Solicitud exitosa (lectura o verificación, o solicitud idempotente repetida).
+* **`201 Created`**: Recurso creado exitosamente (Checkout o Registro).
+* **`400 Bad Request`**: Parámetros incompletos, formato de email inválido, teléfono que no tiene 8 dígitos o contraseña débil.
 * **`401 Unauthorized`**: Falta token o credenciales incorrectas.
+* **`403 Forbidden`**: Token válido pero sin privilegios suficientes (Caso CP-36 para rol `customer` en rutas `admin`).
 * **`404 Not Found`**: Recurso inexistente o producto inactivo.
-* **`409 Conflict`**: Conflicto de concurrencia o stock agotado.
-* **`422 Unprocessable Entity`**: Error de regla de negocio en checkout (cupón inválido en transacción).
+* **`409 Conflict`**: Conflicto de inventario agotado o correo ya registrado.
+* **`422 Unprocessable Entity`**: Error de regla de negocio en checkout (cupón inválido o vencido en transacción).
 * **`500 Internal Server Error`**: Excepción no controlada en el backend.

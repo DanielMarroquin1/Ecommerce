@@ -24,18 +24,33 @@ router.post('/login', async (req, res) => {
         let userRecord = null;
         let userRole = 'customer';
 
-        // 1. Intentar buscar en zz_users (modelo unificado QA con roles: admin, customer)
+        // 1. Intentar buscar en zz_customers y zz_users (modelo unificado)
         try {
-            const userRes = await pool.query(
-                'SELECT id, email, password_hash, name, role FROM zz_users WHERE LOWER(email) = $1',
+            const customerRes = await pool.query(
+                'SELECT id, email, password_hash, name, role FROM zz_customers WHERE LOWER(email) = $1',
                 [normalizedEmail]
             );
-            if (userRes.rows.length > 0) {
-                userRecord = userRes.rows[0];
+            if (customerRes.rows.length > 0) {
+                userRecord = customerRes.rows[0];
                 userRole = userRecord.role || 'customer';
             }
         } catch (e) {
-            // Si la tabla zz_users no existe aún, se recurre a zz_admins
+            // Ignorar si la tabla no está disponible
+        }
+
+        if (!userRecord) {
+            try {
+                const userRes = await pool.query(
+                    'SELECT id, email, password_hash, name, role FROM zz_users WHERE LOWER(email) = $1',
+                    [normalizedEmail]
+                );
+                if (userRes.rows.length > 0) {
+                    userRecord = userRes.rows[0];
+                    userRole = userRecord.role || 'customer';
+                }
+            } catch (e) {
+                // Si la tabla zz_users no existe aún, se recurre a zz_admins
+            }
         }
 
         // 2. Fallback a zz_admins si no se encontró en zz_users
