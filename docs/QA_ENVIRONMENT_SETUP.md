@@ -56,8 +56,8 @@ npm run seed:qa
 2. Localiza o crea un nuevo **Web Service**:
    * **Repository:** `https://github.com/DanielMarroquin1/Ecommerce` (o conexión GitHub del proyecto)
    * **Branch:** `qa`
-   * **Name:** `ecommerce-backend-qa`
-   * **Region:** `Oregon (US West)` (misma región que el pooler de Supabase para baja latencia)
+   * **Name / URL:** `ecommerce-na6d` (`https://ecommerce-na6d.onrender.com`)
+   * **Region:** `Oregon (US West)` (IPs estáticas de salida: `74.220.48.0/24`, `74.220.56.0/24`)
    * **Runtime:** `Node`
    * **Root Directory:** `server`
    * **Build Command:** `npm install`
@@ -104,25 +104,25 @@ Una vez completado el despliegue en Render, valida el estado del backend ejecuta
 
 ### 4.1 Health Check
 ```bash
-curl -i https://ecommerce-backend-qa.onrender.com/api/health
+curl -i https://ecommerce-na6d.onrender.com/api/health
 ```
 * **Esperado:** `HTTP 200 OK` con `{"status":"ok", "timestamp":"..."}`.
 
 ### 4.2 Verificación de Producto Inactivo (404)
 ```bash
-curl -i https://ecommerce-backend-qa.onrender.com/api/products/vestido-descatalogado-qa
+curl -i https://ecommerce-na6d.onrender.com/api/products/vestido-descatalogado-qa
 ```
 * **Esperado:** `HTTP 404 Not Found` con `{"error":"Producto no encontrado o inactivo"}`.
 
 ### 4.3 Verificación de Filtro Talla + Color + Stock
 ```bash
-curl -i "https://ecommerce-backend-qa.onrender.com/api/products?size=XL&color=Negro"
+curl -i "https://ecommerce-na6d.onrender.com/api/products?size=XL&color=Negro"
 ```
 * **Esperado:** `HTTP 200 OK` con un array vacío `[]` (ya que la combinación XL + Negro tiene stock 0).
 
 ### 4.4 Validación de Cupón con Espacios en Blanco (.trim())
 ```bash
-curl -i -X POST https://ecommerce-backend-qa.onrender.com/api/promos/validate \
+curl -i -X POST https://ecommerce-na6d.onrender.com/api/promos/validate \
   -H "Content-Type: application/json" \
   -d '{"code": "  zzaly10  ", "subtotal": 100}'
 ```

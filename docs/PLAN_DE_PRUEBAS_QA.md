@@ -17,7 +17,7 @@ El presente documento certifica la disponibilidad, robustez y estabilidad del am
 
 ### 1.1 Entornos Aprovisionados y Conectividad
 * **Base de Datos Dedicada:** Proyecto en Supabase (`aws-1-us-west-2.pooler.supabase.com:5432/postgres`) con Session Pooler IPv4 y SSL forzado (`ssl: { rejectUnauthorized: false }`).
-* **Servicio Web en la Nube:** Instancia activa en Render (`ecommerce-backend-qa.onrender.com`) desplegada desde la rama `qa`.
+* **Servicio Web en la Nube:** Instancia activa en Render (`https://ecommerce-na6d.onrender.com`) desplegada desde la rama `qa`.
 * **Motor Transaccional:** Procedimiento almacenado `process_checkout` con bloqueo `SELECT ... FOR UPDATE` (ACID) y soporte de idempotencia.
 
 ---

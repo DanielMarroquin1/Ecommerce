@@ -4,7 +4,7 @@
 **Autor:** Especialista Backend & DevOps/QA  
 **Fecha de Publicación:** 13 de Octubre de 2026  
 **Versión de API:** 1.2.0-qa  
-**Base URL QA:** `https://ecommerce-backend-qa.onrender.com/api` (o `http://localhost:5000/api` en desarrollo local)
+**Base URL QA:** `https://ecommerce-na6d.onrender.com/api` (o `http://localhost:5000/api` en desarrollo local)
 
 ---
 
