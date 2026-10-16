@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider, useCart } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Nosotros from './pages/Nosotros';
 import Catalog from './pages/Catalog';
 import Cart from './pages/Cart';
+import Login from './pages/Login';
 import AdminLogin from './pages/Admin/AdminLogin';
 import AdminLayout from './pages/Admin/AdminLayout';
 import AdminDashboard from './pages/Admin/AdminDashboard';
@@ -34,6 +36,7 @@ function AppContent() {
           <Route path="/nosotros" element={<Nosotros />} />
           <Route path="/catalogo" element={<Catalog />} />
           <Route path="/carrito" element={<Cart />} />
+          <Route path="/login" element={<Login />} />
 
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
@@ -54,10 +57,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <CartProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </CartProvider>
+    </AuthProvider>
   );
 }
+

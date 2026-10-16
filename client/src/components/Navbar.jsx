@@ -1,15 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [hidden, setHidden] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
     const { totalItems } = useCart();
+    const { user, isAuthenticated, logout } = useAuth();
     const location = useLocation();
     const isHome = location.pathname === '/';
     const lastScrollY = useRef(0);
+    const userMenuRef = useRef(null);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -30,7 +34,19 @@ export default function Navbar() {
 
     useEffect(() => {
         setMenuOpen(false);
+        setUserMenuOpen(false);
     }, [location]);
+
+    // Cerrar dropdown al hacer click fuera
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setUserMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const isActive = (path) => location.pathname === path ? 'active' : '';
 
@@ -72,6 +88,8 @@ export default function Navbar() {
                                 </div>
                             </div>
                         </li>
+
+                        {/* Carrito */}
                         <li>
                             <Link to="/carrito" className={`navbar-cart ${isActive('/carrito')}`}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -81,6 +99,77 @@ export default function Navbar() {
                                 </svg>
                                 {totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
                             </Link>
+                        </li>
+
+                        {/* Botón de Inicio de Sesión / Perfil de Usuario */}
+                        <li>
+                            {!isAuthenticated ? (
+                                <Link to="/login" className={`navbar-auth-btn ${isActive('/login')}`}>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                        <circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                    <span>Iniciar Sesión</span>
+                                </Link>
+                            ) : (
+                                <div className="navbar-user-dropdown-wrapper" ref={userMenuRef}>
+                                    <button
+                                        type="button"
+                                        className="navbar-user-trigger"
+                                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                        aria-label="Perfil de usuario"
+                                    >
+                                        <span className="navbar-avatar-circle">
+                                            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                                        </span>
+                                        <span className="navbar-user-name">
+                                            {user?.name ? user.name.split(' ')[0] : 'Cuenta'}
+                                        </span>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                            <path d="M6 9l6 6 6-6" />
+                                        </svg>
+                                    </button>
+
+                                    {userMenuOpen && (
+                                        <div className="navbar-user-menu-popover">
+                                            <div className="menu-popover-header">
+                                                <strong>{user.name}</strong>
+                                                <small>{user.email}</small>
+                                                <span className={`role-badge ${user.role}`}>
+                                                    {user.role === 'admin' ? '🛡️ Administrador' : '👤 Cliente'}
+                                                </span>
+                                            </div>
+                                            <div className="menu-popover-divider" />
+                                            {user.role === 'admin' && (
+                                                <Link
+                                                    to="/admin/dashboard"
+                                                    className="menu-popover-item"
+                                                    onClick={() => setUserMenuOpen(false)}
+                                                >
+                                                    ⚙️ Panel de Administración
+                                                </Link>
+                                            )}
+                                            <Link
+                                                to="/carrito"
+                                                className="menu-popover-item"
+                                                onClick={() => setUserMenuOpen(false)}
+                                            >
+                                                🛍️ Mi Carrito ({totalItems})
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                className="menu-popover-logout"
+                                                onClick={() => {
+                                                    logout();
+                                                    setUserMenuOpen(false);
+                                                }}
+                                            >
+                                                🚪 Cerrar Sesión
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </li>
                     </ul>
 
@@ -115,6 +204,36 @@ export default function Navbar() {
                     <Link to="/carrito" onClick={() => setMenuOpen(false)}>
                         Carrito {totalItems > 0 && `(${totalItems})`}
                     </Link>
+
+                    <div className="mobile-auth-section">
+                        {!isAuthenticated ? (
+                            <Link to="/login" onClick={() => setMenuOpen(false)} className="mobile-login-btn">
+                                👤 Iniciar Sesión
+                            </Link>
+                        ) : (
+                            <div className="mobile-user-box">
+                                <div className="mobile-user-info">
+                                    <strong>{user.name}</strong>
+                                    <small>{user.email}</small>
+                                </div>
+                                {user.role === 'admin' && (
+                                    <Link to="/admin/dashboard" onClick={() => setMenuOpen(false)} className="mobile-admin-btn">
+                                        ⚙️ Panel Admin
+                                    </Link>
+                                )}
+                                <button
+                                    type="button"
+                                    className="mobile-logout-btn"
+                                    onClick={() => {
+                                        logout();
+                                        setMenuOpen(false);
+                                    }}
+                                >
+                                    Cerrar Sesión
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </>

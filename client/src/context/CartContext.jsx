@@ -35,9 +35,20 @@ export function CartProvider({ children }) {
                         : item
                 );
             }
+            // Encontrar la variante específica del producto según talla y color
+            const matchedVariant = product.variants?.find(v => 
+                v.size === size && (
+                    (v.color && color && v.color.toLowerCase() === color.toLowerCase()) ||
+                    (v.color_name && color && v.color_name.toLowerCase() === color.toLowerCase())
+                )
+            ) || product.variants?.[0];
+
+            const variantId = matchedVariant?.id || product.id;
+
             return [...prev, {
                 key,
                 id: product.id,
+                variantId: variantId,
                 name: product.name,
                 price: product.price,
                 image: product.images?.[0]?.url || '',
@@ -51,6 +62,11 @@ export function CartProvider({ children }) {
 
     const removeItem = useCallback((key) => {
         setItems(prev => prev.filter(item => item.key !== key));
+    }, []);
+
+    const clearCart = useCallback(() => {
+        setItems([]);
+        localStorage.removeItem('zzaly_cart');
     }, []);
 
     const updateQuantity = useCallback((key, quantity) => {
@@ -70,6 +86,7 @@ export function CartProvider({ children }) {
             items,
             addItem,
             removeItem,
+            clearCart,
             updateQuantity,
             totalItems,
             totalPrice,

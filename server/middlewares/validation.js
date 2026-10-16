@@ -12,12 +12,13 @@ const validateCheckout = (req, res, next) => {
     const body = req.body || {};
 
     const items = body.items;
-    const customer = body.customer || {
-        name: body.contactName,
-        email: body.contactEmail,
-        phone: body.contactPhone
+    const rawCustomer = (body.customer && typeof body.customer === 'object') ? body.customer : {};
+    const customer = {
+        name: rawCustomer.name || body.customerName || body.contactName || body.name,
+        email: rawCustomer.email || body.customerEmail || body.contactEmail || body.email,
+        phone: rawCustomer.phone || body.customerPhone || body.contactPhone || body.phone
     };
-    const shippingAddress = body.shippingAddress || body.address;
+    const shippingAddress = body.shippingAddress || body.address || (typeof rawCustomer.address === 'string' ? rawCustomer.address : null);
 
     // 1. Validar carrito e items
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -59,7 +60,7 @@ const validateCheckout = (req, res, next) => {
         return res.status(400).json({ error: 'El número de teléfono es obligatorio' });
     }
 
-    const cleanPhone = String(customer.phone).trim();
+    const cleanPhone = String(customer.phone).trim().replace(/\D/g, '');
     if (!PHONE_REGEX.test(cleanPhone)) {
         return res.status(400).json({ 
             error: 'El número de teléfono debe contener exactamente 8 dígitos numéricos' 
