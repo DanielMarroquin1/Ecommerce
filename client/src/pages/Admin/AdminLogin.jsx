@@ -30,8 +30,15 @@ export default function AdminLogin() {
                 return;
             }
 
+            const role = data.admin?.role || data.user?.role;
+            if (role !== 'admin') {
+                setError('Acceso denegado: Esta cuenta es de cliente y no tiene permisos para acceder al panel de administración.');
+                setLoading(false);
+                return;
+            }
+
             localStorage.setItem('zzaly_admin_token', data.token);
-            localStorage.setItem('zzaly_admin_user', JSON.stringify(data.admin));
+            localStorage.setItem('zzaly_admin_user', JSON.stringify(data.admin || data.user));
             navigate('/admin/dashboard');
         } catch (err) {
             setError('Error de conexión con el servidor');

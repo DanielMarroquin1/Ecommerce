@@ -18,7 +18,7 @@ export default function AdminDashboard() {
     }, []);
 
     if (loading) return <div className="admin-loading">Cargando dashboard...</div>;
-    if (!stats) return <div className="admin-loading">Error al cargar datos</div>;
+    if (!stats || stats.error) return <div className="admin-loading">{stats?.error || 'Error al cargar datos'}</div>;
 
     const statusLabels = {
         pending: 'Pendiente',
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
                 <div className="admin-stat-card">
                     <div className="admin-stat-icon" style={{ background: '#fff3e0' }}>💰</div>
                     <div className="admin-stat-info">
-                        <span className="admin-stat-value">Q{stats.totalRevenue.toLocaleString('es-GT', { minimumFractionDigits: 2 })}</span>
+                        <span className="admin-stat-value">Q{(stats.totalRevenue ?? 0).toLocaleString('es-GT', { minimumFractionDigits: 2 })}</span>
                         <span className="admin-stat-label">Ingresos Totales</span>
                     </div>
                 </div>

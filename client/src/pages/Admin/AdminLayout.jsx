@@ -23,8 +23,8 @@ export default function AdminLayout() {
         })
             .then(res => res.json())
             .then(data => {
-                if (data.valid) {
-                    setAdmin(data.admin);
+                if (data.valid && (data.admin || data.user?.role === 'admin')) {
+                    setAdmin(data.admin || data.user);
                     setChecking(false);
                 } else {
                     localStorage.removeItem('zzaly_admin_token');
