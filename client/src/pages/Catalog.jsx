@@ -60,7 +60,7 @@ export default function Catalog() {
                 return res.json();
             })
             .then(data => {
-                setProducts(Array.isArray(data) ? data : []);
+                setProducts(Array.isArray(data) ? data : (Array.isArray(data?.products) ? data.products : []));
                 setLoading(false);
             })
             .catch(err => {
