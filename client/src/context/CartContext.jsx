@@ -1,4 +1,4 @@
-﻿import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const CartContext = createContext();
 
@@ -92,11 +92,6 @@ export function CartProvider({ children }) {
 
     const removeItem = useCallback((key) => {
         setItems(prev => prev.filter(item => item.key !== key));
-    }, []);
-
-    const clearCart = useCallback(() => {
-        setItems([]);
-        localStorage.removeItem('zzaly_cart');
     }, []);
 
     const updateQuantity = useCallback((key, quantity) => {
