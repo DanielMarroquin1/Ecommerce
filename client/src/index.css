@@ -1013,6 +1013,21 @@ button {
   color: var(--white);
 }
 
+.size-btn.out-of-stock {
+  opacity: 0.55;
+  text-decoration: line-through;
+  cursor: not-allowed;
+  background: #f4ede9;
+  border-color: #dfd7d2;
+}
+
+.product-detail-standalone {
+  box-shadow: none;
+  max-height: none;
+  overflow-y: visible;
+  animation: none;
+}
+
 .color-selector {
   display: flex;
   gap: 0.75rem;

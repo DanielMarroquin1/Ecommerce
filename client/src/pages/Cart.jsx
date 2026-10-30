@@ -1,19 +1,35 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Cart() {
     const { items, removeItem, updateQuantity, totalPrice } = useCart();
+    const navigate = useNavigate();
+
+    // Customer Name State
+    const [customerName, setCustomerName] = useState(() => {
+        try {
+            return localStorage.getItem('zzaly_customer_name') || '';
+        } catch {
+            return '';
+        }
+    });
 
     // Promo Code State
     const [promoInput, setPromoInput] = useState('');
     const [promoData, setPromoData] = useState(null);
     const [promoError, setPromoError] = useState('');
 
-    // Checkout State
-    const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const handleCustomerNameChange = (val) => {
+        setCustomerName(val);
+        try {
+            localStorage.setItem('zzaly_customer_name', val);
+        } catch {
+            // ignore
+        }
+    };
 
     const handleApplyPromo = async () => {
         setPromoError('');
@@ -46,36 +62,14 @@ export default function Cart() {
 
     const finalTotal = Math.max(0, totalPrice - discountAmount);
 
-    const handleCheckout = async () => {
-        setIsCheckingOut(true);
-        try {
-            const res = await fetch(`${API_URL}/checkout/process`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: null, // Guest for now
-                    subtotal: totalPrice,
-                    discountAmount,
-                    total: finalTotal,
-                    promoCodeId: promoData?.id || null,
-                    shippingAddress: { city: 'Guatemala', address: 'Zona 10' }, // Mock
-                    contactEmail: 'cliente@ejemplo.com',
-                    contactPhone: '5555-5555',
-                    items: items.map(i => ({ variantId: i.id, name: i.name, size: i.size, color: i.color, quantity: i.quantity, price: i.price }))
-                })
-            });
-            const data = await res.json();
-
-            if (res.ok) {
-                alert(`¡Preparado para Banco Industrial!\nOrden ID: ${data.orderId}\nTransacción Pago ID: ${data.paymentId}`);
-            } else {
-                alert(`Error en checkout: ${data.error}`);
+    const handleCheckout = () => {
+        navigate('/checkout', {
+            state: {
+                promoData,
+                discountAmount,
+                customerName: customerName.trim()
             }
-        } catch (err) {
-            alert('Error crítico al procesar checkout');
-        } finally {
-            setIsCheckingOut(false);
-        }
+        });
     };
 
     if (items.length === 0) {
@@ -105,32 +99,67 @@ export default function Cart() {
         <div className="cart-page">
             <h1>Mi Carrito</h1>
 
-            {items.map((item) => (
-                <div className="cart-item" key={item.key}>
-                    <div className="cart-item-image">
-                        <img src={item.image} alt={item.name} />
-                    </div>
-                    <div className="cart-item-info">
-                        <div>
-                            <h3 className="cart-item-name">{item.name}</h3>
-                            <p className="cart-item-meta">Talla: {item.size} · Color: {item.color}</p>
+            {items.map((item) => {
+                const isMax = item.stock !== null && item.stock !== undefined && item.quantity >= item.stock;
+                const isMin = item.quantity <= 1;
+                return (
+                    <div className="cart-item" key={item.key}>
+                        <div className="cart-item-image">
+                            <img src={item.image} alt={item.name} />
                         </div>
-                        <div className="cart-item-actions">
-                            <div className="qty-control">
-                                <button onClick={() => updateQuantity(item.key, item.quantity - 1)}>−</button>
-                                <span>{item.quantity}</span>
-                                <button onClick={() => updateQuantity(item.key, item.quantity + 1)}>+</button>
+                        <div className="cart-item-info">
+                            <div>
+                                <h3 className="cart-item-name">{item.name}</h3>
+                                <p className="cart-item-meta">
+                                    Talla: {item.size} · Color: {item.color}
+                                    {item.stock !== null && item.stock !== undefined && (
+                                        <span style={{ marginLeft: 8, color: '#888', fontSize: '0.8rem' }}>
+                                            (Disponibles: {item.stock})
+                                        </span>
+                                    )}
+                                </p>
                             </div>
-                            <span className="cart-item-price">${(item.price * item.quantity).toFixed(2)}</span>
-                            <button className="cart-item-remove" onClick={() => removeItem(item.key)}>
-                                Eliminar
-                            </button>
+                            <div className="cart-item-actions">
+                                <div className="qty-control">
+                                    <button
+                                        onClick={() => updateQuantity(item.key, item.quantity - 1)}
+                                        disabled={isMin}
+                                        style={{ opacity: isMin ? 0.4 : 1, cursor: isMin ? 'not-allowed' : 'pointer' }}
+                                        title="Disminuir cantidad"
+                                    >−</button>
+                                    <span>{item.quantity}</span>
+                                    <button
+                                        onClick={() => updateQuantity(item.key, item.quantity + 1)}
+                                        disabled={isMax}
+                                        style={{ opacity: isMax ? 0.4 : 1, cursor: isMax ? 'not-allowed' : 'pointer' }}
+                                        title={isMax ? 'Stock máximo alcanzado' : 'Aumentar cantidad'}
+                                    >+</button>
+                                </div>
+                                <span className="cart-item-price">Q{(item.price * item.quantity).toFixed(2)}</span>
+                                <button className="cart-item-remove" onClick={() => removeItem(item.key)}>
+                                    Eliminar
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
 
             <div className="cart-summary">
+                <div style={{ marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label htmlFor="cart-customer-name" style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                        Nombre del cliente
+                    </label>
+                    <input
+                        id="cart-customer-name"
+                        type="text"
+                        value={customerName}
+                        onChange={e => handleCustomerNameChange(e.target.value)}
+                        placeholder="Ej. Ana Lucía Morales"
+                        style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sand)', fontSize: '0.95rem', outline: 'none' }}
+                    />
+                </div>
+
                 <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     <label style={{ fontSize: '0.9rem', fontWeight: 600 }}>¿Tienes un código de descuento?</label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -138,7 +167,7 @@ export default function Cart() {
                             type="text"
                             value={promoInput}
                             onChange={e => setPromoInput(e.target.value)}
-                            placeholder="Ej. VERANO20"
+                            placeholder="Ej. BIENVENIDA10"
                             style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--sand)' }}
                         />
                         <button
@@ -154,24 +183,28 @@ export default function Cart() {
 
                 <div className="cart-summary-row">
                     <span>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} artículos)</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>Q{totalPrice.toFixed(2)}</span>
                 </div>
                 {promoData && (
                     <div className="cart-summary-row">
                         <span>Descuento ({promoData.code})</span>
-                        <span style={{ color: 'red' }}>-${discountAmount.toFixed(2)}</span>
+                        <span style={{ color: 'red' }}>-Q{discountAmount.toFixed(2)}</span>
                     </div>
                 )}
                 <div className="cart-summary-row">
                     <span>Envío</span>
                     <span style={{ color: '#BC967F' }}>Gratis</span>
                 </div>
-                <div className="cart-summary-total">
+                <div className="cart-summary-total" data-testid="cart-total">
                     <span>Total</span>
-                    <span>${finalTotal.toFixed(2)}</span>
+                    <span data-testid="cart-total-value">Q{finalTotal.toFixed(2)}</span>
                 </div>
-                <button className="checkout-btn" onClick={handleCheckout} disabled={isCheckingOut}>
-                    {isCheckingOut ? 'Procesando...' : 'Proceder al Pago'}
+                <button
+                    className="checkout-btn"
+                    data-testid="checkout-button"
+                    onClick={handleCheckout}
+                >
+                    Finalizar compra
                 </button>
             </div>
         </div>

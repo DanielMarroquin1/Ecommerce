@@ -74,7 +74,7 @@ export default function AdminOrders() {
                                 <>
                                     <tr key={order.id} onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)} style={{ cursor: 'pointer' }}>
                                         <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{String(order.id).substring(0, 8)}...</td>
-                                        <td>{order.contact_email}</td>
+                                        <td>{order.shipping_address?.fullName ? `${order.shipping_address.fullName} (${order.contact_email})` : order.contact_email}</td>
                                         <td style={{ fontWeight: 600 }}>Q{parseFloat(order.total).toFixed(2)}</td>
                                         <td>
                                             <span className={`admin-badge admin-badge-${order.status}`}>
@@ -117,8 +117,17 @@ export default function AdminOrders() {
                                                     </div>
                                                     <div>
                                                         <h4>Datos del Cliente</h4>
+                                                        {order.shipping_address?.fullName && (
+                                                            <p><strong>Nombre:</strong> {order.shipping_address.fullName}</p>
+                                                        )}
                                                         <p><strong>Email:</strong> {order.contact_email}</p>
                                                         {order.contact_phone && <p><strong>Teléfono:</strong> {order.contact_phone}</p>}
+                                                        {order.shipping_address?.address && (
+                                                            <p><strong>Dirección:</strong> {order.shipping_address.address}, {order.shipping_address.municipality || order.shipping_address.city}, {order.shipping_address.department}</p>
+                                                        )}
+                                                        {order.shipping_address?.notes && (
+                                                            <p><strong>Notas:</strong> {order.shipping_address.notes}</p>
+                                                        )}
                                                         <p><strong>Subtotal:</strong> Q{parseFloat(order.subtotal).toFixed(2)}</p>
                                                         {parseFloat(order.discount_amount) > 0 && (
                                                             <p><strong>Descuento:</strong> -Q{parseFloat(order.discount_amount).toFixed(2)}</p>

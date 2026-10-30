@@ -85,14 +85,23 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const isNumeric = /^\d+$/.test(id);
 
-        const result = await pool.query(
-            `SELECT p.*, c.name as category_name, c.slug as category_slug
-       FROM zz_products p
-       LEFT JOIN zz_categories c ON p.category_id = c.id
-       WHERE p.id = $1`,
-            [id]
-        );
+        const result = isNumeric
+            ? await pool.query(
+                `SELECT p.*, c.name as category_name, c.slug as category_slug
+                 FROM zz_products p
+                 LEFT JOIN zz_categories c ON p.category_id = c.id
+                 WHERE p.id = $1 OR p.slug = $2`,
+                [parseInt(id, 10), id]
+            )
+            : await pool.query(
+                `SELECT p.*, c.name as category_name, c.slug as category_slug
+                 FROM zz_products p
+                 LEFT JOIN zz_categories c ON p.category_id = c.id
+                 WHERE p.slug = $1`,
+                [id]
+            );
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Producto no encontrado' });
@@ -102,11 +111,11 @@ router.get('/:id', async (req, res) => {
 
         const images = await pool.query(
             'SELECT id, url, alt_text, sort_order FROM zz_product_images WHERE product_id = $1 ORDER BY sort_order',
-            [id]
+            [product.id]
         );
         const variants = await pool.query(
             'SELECT id, size, color, color_hex, stock FROM zz_product_variants WHERE product_id = $1 ORDER BY size, color',
-            [id]
+            [product.id]
         );
 
         res.json({

@@ -1,15 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [hidden, setHidden] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [navSearch, setNavSearch] = useState('');
     const { totalItems } = useCart();
     const location = useLocation();
+    const navigate = useNavigate();
     const isHome = location.pathname === '/';
     const lastScrollY = useRef(0);
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (navSearch.trim()) {
+            navigate(`/catalogo?search=${encodeURIComponent(navSearch.trim())}`);
+            setSearchOpen(false);
+            setMenuOpen(false);
+            setNavSearch('');
+        }
+    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -30,6 +43,7 @@ export default function Navbar() {
 
     useEffect(() => {
         setMenuOpen(false);
+        setSearchOpen(false);
     }, [location]);
 
     const isActive = (path) => location.pathname === path ? 'active' : '';
@@ -72,6 +86,56 @@ export default function Navbar() {
                                 </div>
                             </div>
                         </li>
+
+                        {/* Search Icon / Bar */}
+                        <li style={{ position: 'relative' }}>
+                            {searchOpen ? (
+                                <form onSubmit={handleSearchSubmit} style={{ display: 'flex', alignItems: 'center' }}>
+                                    <input
+                                        type="search"
+                                        placeholder="Buscar productos..."
+                                        value={navSearch}
+                                        onChange={(e) => setNavSearch(e.target.value)}
+                                        autoFocus
+                                        style={{
+                                            padding: '6px 12px',
+                                            borderRadius: 'var(--radius-full)',
+                                            border: '1px solid var(--sand)',
+                                            fontSize: '0.85rem',
+                                            outline: 'none',
+                                            width: '180px'
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchOpen(false)}
+                                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '4px', color: '#888' }}
+                                    >
+                                        ✕
+                                    </button>
+                                </form>
+                            ) : (
+                                <button
+                                    onClick={() => setSearchOpen(true)}
+                                    aria-label="Buscar"
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        color: 'inherit',
+                                        padding: '4px'
+                                    }}
+                                >
+                                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                </button>
+                            )}
+                        </li>
+
                         <li>
                             <Link to="/carrito" className={`navbar-cart ${isActive('/carrito')}`}>
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

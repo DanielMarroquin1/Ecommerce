@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import ProductCard from '../components/ProductCard';
+import ProductList from '../components/ProductList';
 import ProductDetail from '../components/ProductDetail';
 import CatalogFilters from '../components/CatalogFilters';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Catalog() {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const [searchInput, setSearchInput] = useState(searchParams.get('search') || '');
     const [filters, setFilters] = useState({
         category: searchParams.get('category') || '',
+        search: searchParams.get('search') || '',
         size: '',
         color: '',
         min_price: '',
@@ -24,10 +26,25 @@ export default function Catalog() {
     // Fetch categories
     useEffect(() => {
         fetch(`${API_URL}/categories`)
-            .then(res => res.json())
-            .then(data => setCategories(data))
-            .catch(console.error);
+            .then(res => res.ok ? res.json() : [])
+            .then(data => setCategories(Array.isArray(data) ? data : []))
+            .catch(err => {
+                console.error('Error al cargar categorías:', err);
+                setCategories([]);
+            });
     }, []);
+
+    // Sync URL params to state
+    useEffect(() => {
+        const cat = searchParams.get('category') || '';
+        const search = searchParams.get('search') || '';
+        setFilters(prev => ({
+            ...prev,
+            category: cat,
+            search: search
+        }));
+        setSearchInput(search);
+    }, [searchParams]);
 
     // Fetch products when filters change
     useEffect(() => {
@@ -38,21 +55,37 @@ export default function Catalog() {
         });
 
         fetch(`${API_URL}/products?${params.toString()}`)
-            .then(res => res.json())
-            .then(data => { setProducts(data); setLoading(false); })
-            .catch(() => setLoading(false));
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                setProducts(Array.isArray(data) ? data : []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Error al cargar catálogo de productos:', err);
+                setProducts([]);
+                setLoading(false);
+            });
     }, [filters]);
 
-    // Sync URL param
-    useEffect(() => {
-        const cat = searchParams.get('category');
-        if (cat && cat !== filters.category) {
-            setFilters(prev => ({ ...prev, category: cat }));
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        const nextParams = new URLSearchParams(searchParams);
+        if (searchInput.trim()) {
+            nextParams.set('search', searchInput.trim());
+        } else {
+            nextParams.delete('search');
         }
-    }, [searchParams]);
+        setSearchParams(nextParams);
+        setFilters(prev => ({ ...prev, search: searchInput.trim() }));
+    };
 
     const clearFilters = () => {
-        setFilters({ category: '', size: '', color: '', min_price: '', max_price: '' });
+        setSearchInput('');
+        setSearchParams({});
+        setFilters({ category: '', search: '', size: '', color: '', min_price: '', max_price: '' });
     };
 
     return (
@@ -69,13 +102,46 @@ export default function Catalog() {
 
             {/* Main Content */}
             <main className="catalog-main">
-                <div className="catalog-header">
+                <div className="catalog-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1>Catálogo</h1>
                         <span className="catalog-count">
                             {loading ? 'Cargando...' : `${products.length} producto${products.length !== 1 ? 's' : ''}`}
                         </span>
                     </div>
+
+                    {/* Buscador de productos */}
+                    <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.5rem', flex: '1', maxWidth: '360px' }}>
+                        <input
+                            type="search"
+                            placeholder="Buscar vestidos, blusas..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            style={{
+                                flex: 1,
+                                padding: '10px 14px',
+                                border: '1px solid var(--sand)',
+                                borderRadius: 'var(--radius-full)',
+                                outline: 'none',
+                                fontSize: '0.9rem'
+                            }}
+                        />
+                        <button
+                            type="submit"
+                            style={{
+                                background: 'var(--espresso)',
+                                color: 'white',
+                                padding: '10px 18px',
+                                borderRadius: 'var(--radius-full)',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Buscar
+                        </button>
+                    </form>
                 </div>
 
                 <button
@@ -91,7 +157,7 @@ export default function Catalog() {
                 </button>
 
                 {loading ? (
-                    <div className="product-grid">
+                    <div className="product-grid" data-testid="product-grid">
                         {[1, 2, 3, 4, 5, 6].map(i => (
                             <div key={i} className="product-card">
                                 <div className="product-card-image loading-skeleton" style={{ aspectRatio: '3/4' }}></div>
@@ -112,21 +178,16 @@ export default function Catalog() {
                         <h3 style={{ fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>
                             No se encontraron productos
                         </h3>
-                        <p style={{ color: '#BC967F' }}>Intenta con otros filtros</p>
+                        <p style={{ color: '#BC967F' }}>Intenta con otros términos o filtros</p>
                         <button className="clear-filters" onClick={clearFilters} style={{ marginTop: '1rem', fontSize: '1rem' }}>
                             Limpiar filtros
                         </button>
                     </div>
                 ) : (
-                    <div className="product-grid">
-                        {products.map(product => (
-                            <ProductCard
-                                key={product.id}
-                                product={product}
-                                onClick={setSelectedProduct}
-                            />
-                        ))}
-                    </div>
+                    <ProductList
+                        products={products}
+                        onSelectProduct={setSelectedProduct}
+                    />
                 )}
             </main>
 
