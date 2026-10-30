@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Middlewares de Validación para Checkout y Clientes
  */
 
@@ -12,9 +12,10 @@ const validateCheckout = (req, res, next) => {
     const body = req.body || {};
 
     const items = body.items;
-    const rawCustomer = (body.customer && typeof body.customer === 'object') ? body.customer : {};
+        const rawCustomer = (body.customer && typeof body.customer === 'object') ? body.customer : {};
+    const rawShipping = (body.shippingAddress && typeof body.shippingAddress === 'object') ? body.shippingAddress : {};
     const customer = {
-        name: rawCustomer.name || body.customerName || body.contactName || body.name,
+        name: rawCustomer.name || body.customerName || body.contactName || body.name || rawShipping.fullName || rawShipping.name,
         email: rawCustomer.email || body.customerEmail || body.contactEmail || body.email,
         phone: rawCustomer.phone || body.customerPhone || body.contactPhone || body.phone
     };

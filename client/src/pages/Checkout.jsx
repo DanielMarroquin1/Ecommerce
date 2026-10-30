@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
@@ -159,6 +159,7 @@ export default function Checkout() {
 
             const payload = {
                 userId: null, // Invitado
+                customerName: form.fullName.trim(),
                 subtotal: totalPrice,
                 discountAmount: discountAmount,
                 total: finalTotal,
