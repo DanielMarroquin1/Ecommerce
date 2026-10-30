@@ -62,6 +62,7 @@ export default function AdminLogin() {
                         <input
                             type="email"
                             required
+                            data-testid="login-email"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                             placeholder="admin@zzaly.com"
@@ -73,13 +74,14 @@ export default function AdminLogin() {
                         <input
                             type="password"
                             required
+                            data-testid="login-password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••••"
                             autoComplete="current-password"
                         />
                     </div>
-                    <button type="submit" className="admin-login-btn" disabled={loading}>
+                    <button type="submit" className="admin-login-btn" data-testid="login-submit" disabled={loading}>
                         {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
                     </button>
                 </form>

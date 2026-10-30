@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import HeroCarousel from '../components/HeroCarousel';
-import ProductCard from '../components/ProductCard';
+import ProductList from '../components/ProductList';
 import ProductDetail from '../components/ProductDetail';
 import useScrollReveal from '../hooks/useScrollReveal';
 
@@ -15,9 +15,19 @@ export default function Home() {
 
     useEffect(() => {
         fetch(`${API_URL}/products?featured=true`)
-            .then(res => res.json())
-            .then(data => { setFeatured(data); setLoading(false); })
-            .catch(() => setLoading(false));
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                setFeatured(Array.isArray(data) ? data : []);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error('Error al cargar productos destacados:', err);
+                setFeatured([]);
+                setLoading(false);
+            });
     }, []);
 
     return (
@@ -112,15 +122,10 @@ export default function Home() {
                             ))}
                         </div>
                     ) : (
-                        <div className="product-grid">
-                            {featured.map(product => (
-                                <ProductCard
-                                    key={product.id}
-                                    product={product}
-                                    onClick={setSelectedProduct}
-                                />
-                            ))}
-                        </div>
+                        <ProductList
+                            products={featured}
+                            onSelectProduct={setSelectedProduct}
+                        />
                     )}
                     <div className="reveal-on-scroll" style={{ textAlign: 'center', marginTop: '3rem' }}>
                         <Link to="/catalogo" className="btn-primary">

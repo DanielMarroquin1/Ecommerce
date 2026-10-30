@@ -1,11 +1,22 @@
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination } from 'swiper/modules';
+import { Link, useNavigate } from 'react-router-dom';
 import 'swiper/css';
 import 'swiper/css/pagination';
 
 export default function ProductCard({ product, onClick }) {
+    const navigate = useNavigate();
+
+    const handleCardClick = (e) => {
+        if (onClick) {
+            onClick(product);
+        } else {
+            navigate(`/producto/${product.id}`);
+        }
+    };
+
     return (
-        <div className="product-card" onClick={() => onClick(product)}>
+        <div className="product-card" data-testid="product-card" onClick={handleCardClick}>
             <div className="product-card-image">
                 {product.is_featured && <span className="product-card-badge">Destacado</span>}
                 {product.images && product.images.length > 1 ? (
@@ -30,15 +41,27 @@ export default function ProductCard({ product, onClick }) {
                 )}
                 <button
                     className="product-card-quick"
-                    onClick={(e) => { e.stopPropagation(); onClick(product); }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onClick) onClick(product);
+                        else navigate(`/producto/${product.id}`);
+                    }}
                 >
                     Vista Rápida
                 </button>
             </div>
             <div className="product-card-info">
                 <div className="product-card-category">{product.category_name}</div>
-                <h3 className="product-card-name">{product.name}</h3>
-                <div className="product-card-price">${product.price}</div>
+                <h3 className="product-card-name">
+                    <Link
+                        to={`/producto/${product.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ color: 'inherit', textDecoration: 'none' }}
+                    >
+                        {product.name}
+                    </Link>
+                </h3>
+                <div className="product-card-price">Q{parseFloat(product.price).toFixed(2)}</div>
                 {product.colors && product.colors.length > 0 && (
                     <div className="product-card-colors">
                         {product.colors.map((color, idx) => (

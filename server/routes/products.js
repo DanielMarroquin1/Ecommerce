@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 
@@ -92,19 +92,23 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const isNumeric = /^\d+$/.test(id);
 
-        const isNumeric = !isNaN(Number(id));
-        const queryText = isNumeric
-            ? `SELECT p.*, c.name as category_name, c.slug as category_slug
-               FROM zz_products p
-               LEFT JOIN zz_categories c ON p.category_id = c.id
-               WHERE p.id = $1`
-            : `SELECT p.*, c.name as category_name, c.slug as category_slug
-               FROM zz_products p
-               LEFT JOIN zz_categories c ON p.category_id = c.id
-               WHERE p.slug = $1`;
-
-        const result = await pool.query(queryText, [id]);
+        const result = isNumeric
+            ? await pool.query(
+                SELECT p.*, c.name as category_name, c.slug as category_slug
+                 FROM zz_products p
+                 LEFT JOIN zz_categories c ON p.category_id = c.id
+                 WHERE p.id =  OR p.slug = ,
+                [parseInt(id, 10), id]
+            )
+            : await pool.query(
+                SELECT p.*, c.name as category_name, c.slug as category_slug
+                 FROM zz_products p
+                 LEFT JOIN zz_categories c ON p.category_id = c.id
+                 WHERE p.slug = ,
+                [id]
+            );
 
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Producto no encontrado o inactivo' });

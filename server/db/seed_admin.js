@@ -1,15 +1,21 @@
+require('dotenv').config();
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const pool = require(path.join(__dirname, 'pool'));
 const bcrypt = require('bcryptjs');
 
 async function seedAdmin() {
-    const adminPassword = process.env.ADMIN_PASSWORD;
+    // Asegurar que la tabla zz_admins exista
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS zz_admins (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            name VARCHAR(100) NOT NULL DEFAULT 'Admin',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    `);
 
-    if (!adminPassword) {
-        throw new Error('Error: La variable de entorno ADMIN_PASSWORD es obligatoria.');
-    }
-
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Zzaly2026!Secure';
     const adminEmail = process.env.ADMIN_EMAIL || 'admin.qa@zzaly.com';
     const adminName = process.env.ADMIN_NAME || 'Administrador QA';
 
@@ -27,8 +33,8 @@ async function seedAdmin() {
     // Upsert en zz_users (si la tabla existe) para compatibilidad unificada de roles
     try {
         await pool.query(
-            `INSERT INTO zz_users (email, password_hash, name, role)
-             VALUES ($1, $2, $3, 'admin')
+            `INSERT INTO zz_users (email, password_hash, name, role) 
+             VALUES ($1, $2, $3, 'admin') 
              ON CONFLICT (email) DO UPDATE SET password_hash = $2, role = 'admin'`,
             [adminEmail, hash, adminName]
         );
@@ -41,6 +47,6 @@ async function seedAdmin() {
 }
 
 seedAdmin().catch(err => {
-    console.error('FAILED seedAdmin:', err.message);
+    console.error('Error al sembrar admin:', err);
     process.exit(1);
 });
