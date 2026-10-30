@@ -202,16 +202,52 @@ async function runTests() {
         const firstProduct = catalog.data[0];
         const validVariant = firstProduct.variants.find(v => v.stock > 0);
 
-        // Validación de campos
+        // Validación de campos: Teléfono y Correo Electrónico
         const badPhoneCheckout = await request('/api/checkout', {
             method: 'POST',
             body: {
                 items: [{ variantId: validVariant.id, quantity: 1 }],
-                customer: { name: 'Test', email: 'test@example.com', phone: '123' }, // teléfono inválido (menos de 8 dígitos)
+                customer: { name: 'Test', email: 'test@example.com', phone: '123' }, // menos de 8 dígitos
                 shippingAddress: 'Ciudad'
             }
         });
-        assert(badPhoneCheckout.status === 400, 'Checkout rechaza teléfono con longitud distinta a 8 dígitos con 400 Bad Request');
+        assert(badPhoneCheckout.status === 400, 'Checkout rechaza teléfono con longitud menor a 8 dígitos (400 Bad Request)');
+
+        const badPhoneLongCheckout = await request('/api/checkout', {
+            method: 'POST',
+            body: {
+                items: [{ variantId: validVariant.id, quantity: 1 }],
+                customer: { name: 'Test', email: 'test@example.com', phone: '123456789' }, // 9 dígitos
+                shippingAddress: 'Ciudad'
+            }
+        });
+        assert(badPhoneLongCheckout.status === 400, 'Checkout rechaza teléfono con longitud mayor a 8 dígitos (400 Bad Request)');
+
+        const badPhoneLettersCheckout = await request('/api/checkout', {
+            method: 'POST',
+            body: {
+                items: [{ variantId: validVariant.id, quantity: 1 }],
+                customer: { name: 'Test', email: 'test@example.com', phone: '5551abcd' }, // caracteres alfabéticos
+                shippingAddress: 'Ciudad'
+            }
+        });
+        assert(badPhoneLettersCheckout.status === 400, 'Checkout rechaza teléfono que contiene caracteres alfabéticos (400 Bad Request)');
+
+        const badEmailCheckout = await request('/api/checkout', {
+            method: 'POST',
+            body: {
+                items: [{ variantId: validVariant.id, quantity: 1 }],
+                customer: { name: 'Test', email: 'correo-invalido-sin-arroba', phone: '55512345' }, // email inválido
+                shippingAddress: 'Ciudad'
+            }
+        });
+        assert(badEmailCheckout.status === 400, 'Checkout rechaza formato de correo electrónico inválido (400 Bad Request)');
+
+        const badEmailLogin = await request('/api/auth/login', {
+            method: 'POST',
+            body: { email: 'usuario_invalido_sin_dominio', password: 'Password123!' }
+        });
+        assert(badEmailLogin.status === 400, 'Login rechaza formato de correo electrónico inválido (400 Bad Request)');
 
         // Checkout válido e idempotencia
         const idempotencyKey = `QA-TEST-${Date.now()}-${Math.random()}`;

@@ -10,6 +10,8 @@ if (!JWT_SECRET) {
 }
 const JWT_EXPIRY = '24h';
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 // POST /api/auth/login — Autenticación unificada para Administradores y Clientes
 router.post('/login', async (req, res) => {
     try {
@@ -20,6 +22,9 @@ router.post('/login', async (req, res) => {
         }
 
         const normalizedEmail = String(email).toLowerCase().trim();
+        if (!EMAIL_REGEX.test(normalizedEmail)) {
+            return res.status(400).json({ error: 'El formato del correo electrónico es inválido' });
+        }
 
         let userRecord = null;
         let userRole = 'customer';

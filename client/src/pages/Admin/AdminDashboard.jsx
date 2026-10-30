@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || 'https://ecommerce-na6d.onrender.com/api';
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState(null);

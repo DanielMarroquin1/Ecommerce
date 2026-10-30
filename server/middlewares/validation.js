@@ -55,13 +55,14 @@ const validateCheckout = (req, res, next) => {
         return res.status(400).json({ error: 'El formato del correo electrónico es inválido' });
     }
 
-    // 4. Validar formato de teléfono (exactamente 8 dígitos numéricos)
+    // 4. Validar formato de teléfono (exigiendo estrictamente exactamente 8 dígitos numéricos)
     if (!customer.phone || !String(customer.phone).trim()) {
         return res.status(400).json({ error: 'El número de teléfono es obligatorio' });
     }
 
-    const cleanPhone = String(customer.phone).trim().replace(/\D/g, '');
-    if (!PHONE_REGEX.test(cleanPhone)) {
+    const rawPhone = String(customer.phone).trim();
+    const cleanPhone = rawPhone.replace(/\D/g, '');
+    if (!PHONE_REGEX.test(cleanPhone) || /[a-zA-Z]/.test(rawPhone) || rawPhone.replace(/[\s-]/g, '').length !== 8) {
         return res.status(400).json({ 
             error: 'El número de teléfono debe contener exactamente 8 dígitos numéricos' 
         });
@@ -106,10 +107,11 @@ const validateCustomerRegister = (req, res, next) => {
         return res.status(400).json({ error: 'El formato del correo electrónico es inválido' });
     }
 
-    // Validación de teléfono si se proporciona
+    // Validación de teléfono si se proporciona (estrictamente 8 dígitos numéricos)
     if (phone) {
-        const cleanPhone = String(phone).trim();
-        if (!PHONE_REGEX.test(cleanPhone)) {
+        const rawPhone = String(phone).trim();
+        const cleanPhone = rawPhone.replace(/\D/g, '');
+        if (!PHONE_REGEX.test(cleanPhone) || /[a-zA-Z]/.test(rawPhone) || rawPhone.replace(/[\s-]/g, '').length !== 8) {
             return res.status(400).json({ 
                 error: 'El número de teléfono debe contener exactamente 8 dígitos numéricos' 
             });
@@ -143,6 +145,11 @@ const validateCustomerLogin = (req, res, next) => {
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email y contraseña son requeridos' });
+    }
+
+    const cleanEmail = String(email).trim().toLowerCase();
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+        return res.status(400).json({ error: 'El formato del correo electrónico es inválido' });
     }
 
     next();

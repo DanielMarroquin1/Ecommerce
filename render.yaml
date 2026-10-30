@@ -9,8 +9,20 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: NODE_ENV
+        value: qa
       - key: PORT
         value: "5000"
+      - key: JWT_SECRET
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: QA_WHITELIST_IP
+        value: "127.0.0.1,::1,::ffff:127.0.0.1,74.220.48.,74.220.56."
+      - key: FRONTEND_URL
+        value: https://ecommerce-frontend-qa.netlify.app
 
   - type: web
     name: ecommerce-frontend-qa

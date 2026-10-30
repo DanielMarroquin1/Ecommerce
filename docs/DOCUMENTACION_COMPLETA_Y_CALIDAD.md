@@ -166,3 +166,61 @@ Permite a una tienda de ropa femenina vender en línea en Guatemala sin obligar 
 ### 5. ¿Puedo reutilizar partes del Software? (Reutilización)
 > **Respuesta: SÍ.**  
 > **Justificación:** Varios componentes de la aplicación fueron creados para reutilizarse; por ejemplo, `ProductCard.jsx` se utiliza tanto en la página de inicio como en el catálogo pasándole los datos por propiedades. Asimismo, el hook `useCart` permite interactuar con el carrito desde cualquier parte de la interfaz y el middleware `isAdmin` protege cualquier ruta administrativa con una sola línea de código.
+
+---
+
+## 2.3 Infraestructura, Entorno Tecnológico y Planes Activos de Despliegue (Cierre al 27/10/2026)
+
+Como parte de la entrega formal con fecha límite al **27 de Octubre de 2026**, se certifica y documenta la configuración operativa de los entornos de producción y aseguramiento de calidad (QA), garantizando la paridad entre las capas de presentación, lógica de negocio y persistencia de datos.
+
+### 2.3.1 Matriz de Versiones de Software y Runtimes
+
+| Componente de Arquitectura | Plataforma / Proveedor | Versión de Software Homologada | Justificación Técnica & Compatibilidad |
+| :--- | :--- | :--- | :--- |
+| **Backend Runtime** | **Render (Web Service)** | **Node.js v20 LTS** (`v20.x` / LTS estándar) | Seleccionado por ser la versión Long Term Support (LTS) más estable en Render, ofreciendo soporte nativo para `fetch` global, gestión optimizada de memoria en contenedores Linux y compatibilidad retroactiva total con entornos locales en Node.js v22.x. |
+| **Motor de Base de Datos** | **Supabase / PostgreSQL** | **PostgreSQL 15.6 / 16 (Cloud)** <br> *(PostgreSQL 18.1 en entorno local)* | Motor relacional con soporte nativo para transacciones ACID, bloqueo de filas `SELECT ... FOR UPDATE`, procedimiento almacenado `process_checkout` en PL/pgSQL, tipos ENUM (`order_status`, `payment_status`, `discount_type`) y extensión `uuid-ossp`. |
+| **Frontend Runtime / Build** | **Netlify (CI/CD)** | **Node.js v20.x + Vite 7 + React 19** | Proceso de empaquetado optimizado con `rollup` que compila la SPA a activos estáticos HTML/JS/CSS de alto rendimiento (`client/dist`). |
+
+### 2.3.2 Planes Activos de Alojamiento y Características Operativas
+
+| Servicio en la Nube | Plan Activo | Especificaciones del Plan | Configuración Operativa & Limitaciones Mitigadas |
+| :--- | :---: | :--- | :--- |
+| **Render** *(Backend API)* | **Free Web Service** | • 512 MB RAM dedicados para contenedor<br>• 0.1 vCPU compartida<br>• Certificado SSL/TLS Let's Encrypt automático<br>• IPs estáticas de salida (`74.220.48.0/24`, `74.220.56.0/24`)<br>• Dominio público: `https://ecommerce-na6d.onrender.com` | Se configuró el servicio web `ecommerce-backend` vinculado a la rama `qa`. Para mitigar la latencia por *cold start* (suspensión tras 15 min de inactividad del plan Free), se cuenta con el endpoint de monitoreo ligero `GET /api/health`. Las peticiones de QA cuentan con bypass de rate limiting mediante `QA_WHITELIST_IP`. |
+| **Netlify** *(Frontend SPA)* | **Starter (Free)** | • 100 GB/mes de transferencia de datos<br>• 300 minutos mensuales de compilación (Build Time)<br>• Red CDN global Edge Anycast con baja latencia<br>• Soporte de HTTPS TLS 1.3 automático<br>• Dominio público: `https://ecommerce-frontend-qa.netlify.app` | Se automatizó el despliegue mediante el archivo `netlify.toml` en la raíz del repositorio, ejecutando `npm run build` en el directorio base `client` y publicando el directorio `dist`. Cuenta con reglas de reescritura de URL (`/* -> /index.html 200`) para el correcto funcionamiento de React Router. |
+| **Supabase** *(Base de Datos)* | **Free Tier** | • 500 MB de almacenamiento relacional<br>• IPv4 Session Pooler en puerto 5432<br>• Transaction Pooler en puerto 6543<br>• Conexión SSL/TLS forzada (`ssl: { rejectUnauthorized: false }`) | Instancia dedicada para QA (`aws-1-us-west-2.pooler.supabase.com:5432/postgres`). Cuenta con script autocontenido `seed_qa.sql` para restauración instantánea en caso de reinicio de ciclo o pausa por inactividad. |
+
+### 2.3.3 Sincronización de Variables de Entorno y Mitigación de Desincronizaciones (BUG-003)
+
+Para erradicar definitivamente el defecto **BUG-003** (inconsistencias o fallas de comunicación provocadas por desalineación entre el Frontend en Netlify y el Backend en Render), se homologó la configuración de variables de entorno:
+
+```
+┌───────────────────────────────────────┐            ┌───────────────────────────────────────┐
+│          NETLIFY (Frontend)           │            │           RENDER (Backend)            │
+│   ecommerce-frontend-qa.netlify.app   │            │        ecommerce-na6d.onrender.com    │
+├───────────────────────────────────────┤            ├───────────────────────────────────────┤
+│ VITE_API_URL:                         │ ─────────> │ PORT: 5000                            │
+│ https://ecommerce-na6d.onrender.com/api│            │ NODE_ENV: qa                          │
+│                                       │            │ FRONTEND_URL:                         │
+│ NODE_VERSION: 20                      │            │ https://ecommerce-frontend-qa.netlify │
+│ Base Directory: client                │            │ DATABASE_URL: Supabase PostgreSQL     │
+│ Publish Directory: dist               │            │ DB_SSL: true                          │
+└───────────────────────────────────────┘            └───────────────────────────────────────┘
+                                       \              /
+                                        \            /
+                                         ▼          ▼
+                                   ┌───────────────────────────┐
+                                   │   SUPABASE POSTGRESQL     │
+                                   │    Ambiente Dedicado QA   │
+                                   │  (Catálogo, Órdenes, etc.)│
+                                   └───────────────────────────┘
+```
+
+1. **Variables Canónicas en Netlify (`netlify.toml`):**
+   - `VITE_API_URL`: Apunta sin excepción a `https://ecommerce-na6d.onrender.com/api`.
+   - `NODE_VERSION`: Fija el runtime de compilación en `20`.
+   - Resiliencia en código: El frontend implementa un fallback canónico centralizado en `src/config/api.js` que impide desvíos hacia endpoints erróneos o locales ante compilaciones sin variable explícita.
+2. **Variables Homologadas en Render (`render.yaml`):**
+   - `DATABASE_URL`: Apunta a la misma instancia de Supabase PostgreSQL QA.
+   - `FRONTEND_URL`: Autoriza el origen `https://ecommerce-frontend-qa.netlify.app` en las políticas de CORS de Express.
+   - `DB_SSL`: Forzado a `true` para asegurar comunicación cifrada TLS con el pooler de base de datos.
+
