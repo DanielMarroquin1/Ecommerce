@@ -242,12 +242,14 @@ router.get('/orders', isAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT o.*, 
+                   p.code as promo_code,
                    COALESCE(json_agg(
                        json_build_object('product_name', oi.product_name, 'size', oi.size, 'color', oi.color, 'quantity', oi.quantity, 'unit_price', oi.unit_price, 'subtotal', oi.subtotal)
                    ) FILTER (WHERE oi.id IS NOT NULL), '[]') as items
             FROM zz_orders o
             LEFT JOIN zz_order_items oi ON oi.order_id = o.id
-            GROUP BY o.id
+            LEFT JOIN zz_promo_codes p ON p.id = o.promo_code_id
+            GROUP BY o.id, p.code
             ORDER BY o.created_at DESC
         `);
         res.json(result.rows);

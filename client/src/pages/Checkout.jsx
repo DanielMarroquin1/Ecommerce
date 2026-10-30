@@ -163,6 +163,7 @@ export default function Checkout() {
                 subtotal: totalPrice,
                 discountAmount: discountAmount,
                 total: finalTotal,
+                couponCode: promoData?.code || null,
                 promoCodeId: promoData?.id || null,
                 shippingAddress: shippingAddressObj,
                 contactEmail: form.email.trim(),

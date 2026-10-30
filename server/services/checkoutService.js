@@ -9,7 +9,7 @@ class CheckoutService {
      * verificación de inventario, validación de cupones,
      * protección de idempotencia (CP-23) y número de orden legible.
      */
-    async processOrder({ items, customer, shippingAddress, couponCode, userId, idempotencyKey }) {
+    async processOrder({ items, customer, shippingAddress, couponCode, promoCodeId: inputPromoCodeId, userId, idempotencyKey }) {
         // ====================================================================
         // 1. MECANISMO DE IDEMPOTENCIA (CP-23)
         // ====================================================================
@@ -142,14 +142,21 @@ class CheckoutService {
         let discountAmount = 0;
         let appliedCoupon = null;
 
+        let promoRes = null;
         if (couponCode && typeof couponCode === 'string' && couponCode.trim()) {
             const cleanCode = couponCode.trim().toUpperCase();
-
-            const promoRes = await pool.query(
+            promoRes = await pool.query(
                 `SELECT * FROM zz_promo_codes WHERE UPPER(TRIM(code)) = $1`,
                 [cleanCode]
             );
+        } else if (inputPromoCodeId) {
+            promoRes = await pool.query(
+                `SELECT * FROM zz_promo_codes WHERE id = $1`,
+                [inputPromoCodeId]
+            );
+        }
 
+        if (promoRes) {
             if (promoRes.rows.length === 0) {
                 const err = new Error('Cupón vencido o no válido');
                 err.statusCode = 422;

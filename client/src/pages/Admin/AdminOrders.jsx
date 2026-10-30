@@ -63,6 +63,8 @@ export default function AdminOrders() {
                             <tr>
                                 <th>ID</th>
                                 <th>Cliente</th>
+                                <th>Subtotal</th>
+                                <th>Descuento</th>
                                 <th>Total</th>
                                 <th>Estado</th>
                                 <th>Fecha</th>
@@ -73,8 +75,19 @@ export default function AdminOrders() {
                             {orders.map(order => (
                                 <>
                                     <tr key={order.id} onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)} style={{ cursor: 'pointer' }}>
-                                        <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{String(order.id).substring(0, 8)}...</td>
+                                        <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{order.order_number || String(order.id).substring(0, 8) + '...'}</td>
                                         <td>{order.shipping_address?.fullName ? `${order.shipping_address.fullName} (${order.contact_email})` : order.contact_email}</td>
+                                        <td>Q{parseFloat(order.subtotal || order.total).toFixed(2)}</td>
+                                        <td>
+                                            {parseFloat(order.discount_amount) > 0 ? (
+                                                <span style={{ color: '#c0392b', fontWeight: 600 }}>
+                                                    -Q{parseFloat(order.discount_amount).toFixed(2)}
+                                                    {order.promo_code && <span style={{ fontSize: '0.75rem', display: 'block', color: '#666' }}>({order.promo_code})</span>}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: '#999' }}>Q0.00</span>
+                                            )}
+                                        </td>
                                         <td style={{ fontWeight: 600 }}>Q{parseFloat(order.total).toFixed(2)}</td>
                                         <td>
                                             <span className={`admin-badge admin-badge-${order.status}`}>
@@ -97,7 +110,7 @@ export default function AdminOrders() {
                                     </tr>
                                     {expandedOrder === order.id && (
                                         <tr key={`${order.id}-detail`}>
-                                            <td colSpan="6" className="admin-order-detail">
+                                            <td colSpan="8" className="admin-order-detail">
                                                 <div className="admin-order-detail-grid">
                                                     <div>
                                                         <h4>Productos del Pedido</h4>
@@ -129,8 +142,12 @@ export default function AdminOrders() {
                                                             <p><strong>Notas:</strong> {order.shipping_address.notes}</p>
                                                         )}
                                                         <p><strong>Subtotal:</strong> Q{parseFloat(order.subtotal).toFixed(2)}</p>
-                                                        {parseFloat(order.discount_amount) > 0 && (
-                                                            <p><strong>Descuento:</strong> -Q{parseFloat(order.discount_amount).toFixed(2)}</p>
+                                                        {parseFloat(order.discount_amount) > 0 ? (
+                                                            <p style={{ color: '#c0392b' }}>
+                                                                <strong>Descuento {order.promo_code ? `(${order.promo_code})` : ''}:</strong> -Q{parseFloat(order.discount_amount).toFixed(2)}
+                                                            </p>
+                                                        ) : (
+                                                            <p><strong>Descuento:</strong> Q0.00</p>
                                                         )}
                                                         <p><strong>Total:</strong> Q{parseFloat(order.total).toFixed(2)}</p>
                                                     </div>

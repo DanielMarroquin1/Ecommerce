@@ -1,4 +1,4 @@
-﻿/**
+﻿﻿/**
  * Middlewares de Validación para Checkout y Clientes
  */
 
@@ -82,6 +82,7 @@ const validateCheckout = (req, res, next) => {
         },
         shippingAddress: typeof shippingAddress === 'string' ? shippingAddress.trim() : shippingAddress,
         couponCode: body.couponCode || body.coupon_code || body.promoCode || null,
+        promoCodeId: body.promoCodeId || body.promo_code_id || null,
         userId: body.userId || null,
         idempotencyKey: req.headers['idempotency-key'] || body.idempotencyKey || body.idempotency_key || null
     };
